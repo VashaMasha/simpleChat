@@ -27,8 +27,8 @@ const ChatScreen = () => {
     getMessages()
       .then((res: MessageItem[]) => {
         const chatMessages = res.concat(sentMessages);
-        setMessages(chatMessages);
         chatMessages.sort((a, b) => moment(a.createdAt).toDate().getTime() - moment(b.createdAt).toDate().getTime());
+        setMessages(chatMessages);
       })
       .catch(() => {
         Alert.alert('Oops... Something went wrong.');
@@ -53,14 +53,15 @@ const ChatScreen = () => {
     };
     sentMessages.push(message);
     await dispatch(setMessagesAction(sentMessages));
-    flatListRef?.current?.scrollToEnd();
     setIsLoading(false);
+    flatListRef?.current?.scrollToEnd();
   };
 
   return (
     <>
       <FlatList
         data={messages}
+        ref={flatListRef}
         onScrollBeginDrag={() => Keyboard.dismiss()}
         contentContainerStyle={styles.contentContainerStyle}
         style={styles.container}
@@ -76,7 +77,7 @@ const ChatScreen = () => {
               <Text style={styles.messageUsername}>{item.username}</Text>
               <Text style={styles.messageBody}>{item.body}</Text>
             </View>
-            <Text style={styles.messageTime}>{moment(item.createdAt).format('HH:mm')}{moment(item.createdAt).format('MMM DD')}</Text>
+            <Text style={styles.messageTime}>{moment(item.createdAt).format('HH:mm')} {moment(item.createdAt).format('MMM DD')}</Text>
           </View>
         )}
         keyExtractor={(item: any) => (item.id)}

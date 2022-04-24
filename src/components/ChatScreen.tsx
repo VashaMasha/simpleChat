@@ -1,71 +1,106 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Text, View, Image, StyleSheet, TextInput, TouchableOpacity, Dimensions, Keyboard, FlatList, Alert,
 } from 'react-native';
+import moment from 'moment';
+import uuid from 'react-native-uuid';
+import { useDispatch, useSelector } from 'react-redux';
 import { getMessages } from '../api/fetcHandler';
 import colors from '../theme/colors';
 import { MessageItem } from '../types/MessageItemType';
+import SentMessageIcon from '../assets/SentMessageIcon.png';
+import { setMessagesAction } from '../../store/actions/messagesActions';
 
-const chatContentHeight = Dimensions.get('window').height - 130;
+const chatContentHeight = Dimensions.get('window').height - 120;
+const myName = 'Me Myself and I';
 
 const ChatScreen = () => {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const flatListRef = useRef<FlatList<any>>(null);
+
+  const dispatch = useDispatch();
+  const sentMessages = useSelector((state: any) => state.messages?.messages);
 
   useEffect(() => {
     getMessages()
       .then((res: MessageItem[]) => {
-        setMessages(res);
+        const chatMessages = res.concat(sentMessages);
+        setMessages(chatMessages);
+        chatMessages.sort((a, b) => moment(a.createdAt).toDate().getTime() - moment(b.createdAt).toDate().getTime());
       })
       .catch(() => {
-        Alert.alert("Oops... Something went wrong.")
+        Alert.alert('Oops... Something went wrong.');
       });
-  }, []);
+  }, [isLoading]);
 
   const onTextInputChange = (text: string) => {
     setInputText(text);
   };
 
-  const onSendMessagePressed = () => {
-
+  const onSendMessagePressed = async () => {
+    if (!inputText) return;
+    setIsLoading(true);
+    setInputText('');
+    const message = {
+      avatar: 'https://picsum.photos/200',
+      body: inputText,
+      createdAt: (new Date()).toUTCString(),
+      id: uuid.v4().toString(),
+      user: uuid.v4().toString(),
+      username: myName,
+    };
+    sentMessages.push(message);
+    await dispatch(setMessagesAction(sentMessages));
+    flatListRef?.current?.scrollToEnd();
+    setIsLoading(false);
   };
+
   return (
     <>
-      <View style={styles.container}>
-        <FlatList
-          data={messages}
-          onScrollBeginDrag={() => Keyboard.dismiss()}
-          contentContainerStyle={{ height: chatContentHeight }}
-          renderItem={({ item, index }) => (
-            <View style={styles.messageContainer}>
-              <Image
-                source={{ uri: item.avatar }}
-                style={styles.icon}
-              />
-              <View>
-                <Text style={styles.usernameText}>{item.username}</Text>
-                <Text>{item.body}</Text>
-              </View>
+      <FlatList
+        data={messages}
+        onScrollBeginDrag={() => Keyboard.dismiss()}
+        contentContainerStyle={styles.contentContainerStyle}
+        style={styles.container}
+        renderItem={({ item }) => (
+          <View style={styles.messageContainer}>
+              {/* item.avatar does not load. 
+              So i desided to replase it with anoter random icon */}
+            <Image
+              source={{ uri: item.username === myName ? item.avatar : `https://picsum.photos/${item.id}` }}
+              style={styles.icon}
+            />
+            <View>
+              <Text style={styles.messageUsername}>{item.username}</Text>
+              <Text style={styles.messageBody}>{item.body}</Text>
             </View>
-          )}
-          keyExtractor={(item: any) => (item.id)}
-        />
-      </View>
-      <TextInput
-        value={inputText}
-        onChangeText={onTextInputChange}
-        multiline
-        style={styles.inputContainer}
+            <Text style={styles.messageTime}>{moment(item.createdAt).format('HH:mm')}{moment(item.createdAt).format('MMM DD')}</Text>
+          </View>
+        )}
+        keyExtractor={(item: any) => (item.id)}
       />
-      <TouchableOpacity style={styles.inputButton} onPress={onSendMessagePressed}>
-        {/* <Image source={SentMessageIcon} /> */}
-      </TouchableOpacity>
+      <View style={styles.inputContainer}>
+        <TextInput
+          value={inputText}
+          onChangeText={onTextInputChange}
+          multiline
+          style={styles.input}
+        />
+        <TouchableOpacity style={styles.inputButton} onPress={onSendMessagePressed}>
+          <Image source={SentMessageIcon} />
+        </TouchableOpacity>
+      </View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    height: chatContentHeight,
+  },
+  contentContainerStyle: {
     marginHorizontal: 10,
   },
   messageContainer: {
@@ -75,25 +110,40 @@ const styles = StyleSheet.create({
   icon: {
     height: 30,
     width: 30,
-    backgroundColor: colors.black,
     marginRight: 10,
     borderRadius: 65,
   },
-  usernameText: {
-
+  messageUsername: {
+    color: colors.gray,
+  },
+  messageBody: {
+    marginRight: 70,
+  },
+  messageTime: {
+    right: 5,
+    position: 'absolute',
+    color: colors.gray,
+    textAlign: 'right',
+    fontSize: 12,
   },
   inputButton: {
-    alignSelf: 'flex-end',
+    alignSelf: 'center',
+    marginRight: 10,
   },
   inputContainer: {
-    flexDirection: 'row',
     marginHorizontal: 16,
+    marginTop: 10,
     height: 50,
+    flexDirection: 'row',
     borderRadius: 20,
     borderColor: colors.black,
     borderWidth: 1,
+  },
+  input: {
+    alignSelf: 'center',
+    paddingHorizontal: 10,
     fontSize: 16,
-    padding: 10,
+    flex: 1,
   },
 });
 

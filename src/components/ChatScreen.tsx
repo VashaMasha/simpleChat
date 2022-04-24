@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Text, View, Image, StyleSheet, TextInput, TouchableOpacity, Dimensions, Keyboard, FlatList, Alert,
+  Text, View, Image, StyleSheet, TextInput, TouchableOpacity, Dimensions, Keyboard, FlatList, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback,
 } from 'react-native';
 import moment from 'moment';
 import uuid from 'react-native-uuid';
@@ -58,42 +58,50 @@ const ChatScreen = () => {
   };
 
   return (
-    <>
-      <FlatList
-        data={messages}
-        ref={flatListRef}
-        onScrollBeginDrag={() => Keyboard.dismiss()}
-        contentContainerStyle={styles.contentContainerStyle}
-        style={styles.container}
-        renderItem={({ item }) => (
-          <View style={styles.messageContainer}>
-              {/* item.avatar does not load. 
+    <KeyboardAvoidingView
+      enabled
+      behavior={'position'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 40}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <>
+          <FlatList
+            data={messages}
+            ref={flatListRef}
+            onScrollBeginDrag={() => Keyboard.dismiss()}
+            contentContainerStyle={styles.contentContainerStyle}
+            style={styles.container}
+            renderItem={({ item }) => (
+              <View style={styles.messageContainer}>
+                {/* item.avatar does not load.
               So i desided to replase it with anoter random icon */}
-            <Image
-              source={{ uri: item.username === myName ? item.avatar : `https://picsum.photos/${item.id}` }}
-              style={styles.icon}
-            />
-            <View>
-              <Text style={styles.messageUsername}>{item.username}</Text>
-              <Text style={styles.messageBody}>{item.body}</Text>
-            </View>
+                <Image
+                  source={{ uri: item.username === myName ? item.avatar : `https://picsum.photos/${item.id}` }}
+                  style={styles.icon}
+                />
+                <View>
+                  <Text style={styles.messageUsername}>{item.username}</Text>
+                  <Text style={styles.messageBody}>{item.body}</Text>
+                </View>
             <Text style={styles.messageTime}>{moment(item.createdAt).format('HH:mm')} {moment(item.createdAt).format('MMM DD')}</Text>
+              </View>
+            )}
+            keyExtractor={(item: any) => (item.id)}
+          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              value={inputText}
+              onChangeText={onTextInputChange}
+              multiline
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.inputButton} onPress={onSendMessagePressed}>
+              <Image source={SentMessageIcon} />
+            </TouchableOpacity>
           </View>
-        )}
-        keyExtractor={(item: any) => (item.id)}
-      />
-      <View style={styles.inputContainer}>
-        <TextInput
-          value={inputText}
-          onChangeText={onTextInputChange}
-          multiline
-          style={styles.input}
-        />
-        <TouchableOpacity style={styles.inputButton} onPress={onSendMessagePressed}>
-          <Image source={SentMessageIcon} />
-        </TouchableOpacity>
-      </View>
-    </>
+        </>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
